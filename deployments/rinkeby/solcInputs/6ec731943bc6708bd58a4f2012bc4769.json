@@ -1,0 +1,41 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/FundMe.sol": {
+      "content": "// Get funds from users\r\n// Withdraw Funds\r\n// Set a minium funding value in USD\r\n\r\n//SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.8;\r\n\r\nimport \"./PriceConverter.sol\";\r\n\r\nerror NotOwner();\r\n\r\ncontract FundMe{\r\n\r\n    using PriceConverter for uint256;\r\n\r\n    // current gas 885,394\r\n    // constant/immutable to reduce gas\r\n    // 885129 -> 859146\r\n    // immutable 859146 -> 832016\r\n    uint256 public constant MINIMUM_USD = 2;\r\n    address[] public funders;\r\n    address public immutable owner;\r\n    mapping(address => uint256) public addressToAmountFunder;\r\n    AggregatorV3Interface public priceFeed;\r\n\r\n    constructor(address priceFeedAddress){\r\n        owner = msg.sender;\r\n        priceFeed = AggregatorV3Interface(priceFeedAddress);\r\n    }\r\n\r\n    function fund() public payable{\r\n        //set a minimum fund\r\n        require(msg.value.getConversionRate(priceFeed) >= MINIMUM_USD, \"Not enough value.\"); \r\n        funders.push(msg.sender);\r\n        addressToAmountFunder[msg.sender] = msg.value;\r\n    }\r\n\r\n    receive() external payable{\r\n        fund();\r\n    }\r\n\r\n    fallback() external payable{\r\n        fund();\r\n    }\r\n\r\n    function withdraw() public onlyOwner{\r\n        funders = new address[](0);\r\n        // reset array\r\n        // transfer, send, call\r\n        // payable(msg.sender) = payable address\r\n        // payable(msg.sender).transfer(address(this).balance);\r\n\r\n        // bool sendSuccess = payable(msg.sender).send(address(this).balance);\r\n        // require(sendSuccess, \"Send failed\");\r\n        //call\r\n        (bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}(\"\");\r\n        require(callSuccess, \"Call failed\");\r\n    }\r\n\r\n    modifier onlyOwner{\r\n        //using customized error can reduce gas \r\n        if(msg.sender != owner){\r\n            revert NotOwner();\r\n        }\r\n        _;\r\n    }\r\n}"
+    },
+    "contracts/PriceConverter.sol": {
+      "content": "//SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.0;\r\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\r\n\r\nlibrary PriceConverter{\r\n\r\n    function getPrice(AggregatorV3Interface priceFeed) internal view returns(uint256){\r\n        // ABI\r\n        // Address 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e\r\n        (,int price,,,) = priceFeed.latestRoundData();\r\n\r\n        return uint256(price * 1e10); \r\n    }\r\n\r\n    function getConversionRate(uint256 ethAmount, AggregatorV3Interface priceFeed) internal view returns(uint256){\r\n        uint256 ethPrice = getPrice(priceFeed);\r\n        uint256 ethAmountInUsd = (ethPrice * ethAmount) / 1e18;\r\n        return ethAmountInUsd;\r\n    }\r\n}"
+    },
+    "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  // getRoundData and latestRoundData should both raise \"No data present\"\n  // if they do not have data to report, instead of returning unset values\n  // which could be misinterpreted as actual reported values.\n  function getRoundData(uint80 _roundId)\n    external\n    view\n    returns (\n      uint80 roundId,\n      int256 answer,\n      uint256 startedAt,\n      uint256 updatedAt,\n      uint80 answeredInRound\n    );\n\n  function latestRoundData()\n    external\n    view\n    returns (\n      uint80 roundId,\n      int256 answer,\n      uint256 startedAt,\n      uint256 updatedAt,\n      uint80 answeredInRound\n    );\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
