@@ -36,14 +36,6 @@ contract FundMe{
         priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
-    receive() external payable{
-        fund();
-    }
-
-    fallback() external payable{
-        fund();
-    }
-
     /**
     *  @notice This contract is to demo a sample funding contract
     *  @dev This implements price feeds as ChainLink library

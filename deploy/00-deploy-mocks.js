@@ -21,7 +21,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         });
 
         log("Mocks deployed!");
-        log("--------------------------------")
+        log("--------------------------------");
+        log(
+            "You are deploying to a local network, you'll need a local network running to interact"
+        )
+        log(
+            "Please run `npx hardhat console` to interact with the deployed smart contracts!"
+        )
+        log("------------------------------------------------")
     }
 }
 
