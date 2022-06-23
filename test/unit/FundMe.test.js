@@ -6,6 +6,7 @@ describe("FundMe", async function () {
     let deployer;
     let mockV3Aggregator;
     let sendValue = ethers.utils.parseEther("1");
+
     beforeEach(async function () {
         deployer = (await getNamedAccounts()).deployer;
         await deployments.fixture(["all"]);
@@ -77,6 +78,41 @@ describe("FundMe", async function () {
                 startingFundMeBalance.add(startDeployerBalance).toString(),
                 endDeployerBalance.add(gasCost).toString());
         });
-    });
 
+        it("allows us to withdraw with multiple funders", async function () {
+            const accounts = await ethers.getSigners();
+            for (let i = 1; i < 6; i++) {
+                const fundMeConnectedContract = await fundMe.connect(
+                    accounts[i]
+                );
+                await fundMeConnectedContract.fund({ value: sendValue });
+            }
+
+            const startingFundMeBalance = await fundMe.provider.getBalance(
+                fundMe.address
+            );
+
+            const startDeployerBalance = await fundMe.provider.getBalance(
+                deployer
+            );
+
+            const transactionResponse = await fundMe.withdraw();
+            const transactionReceipt = await transactionResponse.wait(1);
+            const { gasUsed, effectiveGasPrice } = transactionReceipt;
+            let gasCost = gasUsed.mul(effectiveGasPrice);
+
+            const endingFundMeBalance = await fundMe.provider.getBalance(
+                fundMe.address
+            );
+
+            const endDeployerBalance = await fundMe.provider.getBalance(
+                deployer
+            );
+
+            assert.equal(endingFundMeBalance, 0);
+            assert.equal(
+                startingFundMeBalance.add(startDeployerBalance).toString(),
+                endDeployerBalance.add(gasCost).toString());
+        });
+    });
 });
