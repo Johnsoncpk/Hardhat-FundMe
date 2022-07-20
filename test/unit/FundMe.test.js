@@ -114,5 +114,13 @@ describe("FundMe", async function () {
                 startingFundMeBalance.add(startDeployerBalance).toString(),
                 endDeployerBalance.add(gasCost).toString());
         });
+
+        it("Only allows the owner to withdraw", async function () {
+            const accounts = await ethers.getSigners();
+            const attacker = accounts[1];
+            const attackerConnectedContract = await fundMe.connect(attacker);
+
+            await expect(attackerConnectedContract.withdraw()).to.be.revertedWith("FundMe_NotOwner");
+        });
     });
 });
